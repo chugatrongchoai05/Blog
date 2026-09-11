@@ -19,15 +19,15 @@ function assertNever(value: never): never {
 function App() {
   const currentView = useNavigationStore((state) => state.currentView)
   const goToLogin = useNavigationStore((state) => state.goToLogin)
-  const currentUser = useAuthStore((state) => state.currentUser)
+  const authStatus = useAuthStore((state) => state.authStatus)
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser)
   const isProtectedView = PROTECTED_VIEWS.includes(currentView.type)
-  const isUnauthenticated = currentUser === null
+  useEffect(() => { fetchCurrentUser() }, [fetchCurrentUser])
   useEffect(() => {
-    if (isProtectedView && isUnauthenticated) { goToLogin() }
-  }, [isProtectedView, isUnauthenticated, goToLogin])
-
-  if (isProtectedView && isUnauthenticated) return <LoginPage />
-
+    if (authStatus === 'unauthenticated' && isProtectedView) { goToLogin() }
+  }, [authStatus, isProtectedView, goToLogin])
+  if (authStatus === 'checking') return <p>Loading...</p>
+  if (authStatus === 'unauthenticated' && isProtectedView) return <LoginPage />
   if (currentView.type === 'login' || currentView.type === 'register') {
     return currentView.type === 'login' ? <LoginPage /> : <RegisterPage />
   }

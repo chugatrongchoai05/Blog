@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import { API_BASE_URL } from '@/config/api'
 
 type User = { id: string, email: string, name: string }
-
+type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated'
 type AuthState = {
   currentUser: User | null
+  authStatus: AuthStatus
   isLoading: boolean
   error: string | null
   setCurrentUser: (user: User | null) => void
@@ -44,10 +45,10 @@ async function authRequest<T>(
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   currentUser: null,
+  authStatus: 'checking',
   isLoading: false,
   error: null,
-  setCurrentUser: (user) => set({ currentUser: user }),
-  
+  setCurrentUser: (user) => set({ currentUser: user, authStatus: user ? 'authenticated' : 'unauthenticated' }),
   login: async (email, password) => {
     set({ isLoading: true, error: null })
     try {
@@ -103,7 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   fetchCurrentUser: async () => {
     const accessToken = localStorage.getItem('accessToken')
     if (!accessToken) {
-      set({ currentUser: null })
+      set({ currentUser: null, authStatus: 'unauthenticated' })
       return false
     }
     try {
@@ -113,10 +114,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           headers: { Authorization: `Bearer ${accessToken}` }
         }, 'Failed to fetch current user', set
       )
-      set({ currentUser: user })
+      set({ currentUser: user, authStatus: 'authenticated' })
       return true
     } catch {
-      set({ currentUser: null })
+      set({ currentUser: null, authStatus: 'unauthenticated' })
       return false
     }
   },
@@ -162,7 +163,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
-      set({ currentUser: null, error: null })
+      set({ currentUser: null, authStatus: 'unauthenticated', error: null })
     }
   }
 }))
